@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 
 /* this tiny web server just serves a file called */
 /* 'index.html' which has to be in the same directory */
@@ -18,13 +19,16 @@
 #define OUT_FILE "index.html"
 #define MAX_CON 64
 
+#define ERROR_DIE(c) do {            \
+                        perror(c);   \
+                        exit(errno); \
+                     } while(0)
+
 const char *response =
 "HTTP/1.0 200 OK\r\n"
 "Content-Type: text/html\r\n"
 "Connection: close\r\n\r\n";
 
-char *buf;
-FILE *f;
 volatile int run = 1;
 
 void T800(int);
@@ -34,6 +38,8 @@ int main(int argc, char *argv[]) {
     
     unsigned int port, sz_sockaddr;
     int hsock, csock, err;
+    char *buf;
+    FILE *f;
     struct stat st;
     struct sockaddr_in server, client;
 
@@ -51,23 +57,20 @@ int main(int argc, char *argv[]) {
 
     f = fopen(OUT_FILE, "rb");
     if (!f) {
-        puts("Error: file not found.");
-        exit(1);
+        ERROR_DIE("File not found.");
     }
 
     fstat(fileno(f), &st);
     buf = malloc(st.st_size + 1);
     if (!buf) {
-        puts("R.I.P");
-        exit(1);
+        ERROR_DIE("R.I.P");
     }
     
     fread(buf, st.st_size, 1, f);
 
     hsock = socket(AF_INET, SOCK_STREAM, 0);
     if (hsock < 0) {
-        puts("Error: Could not create socket.");
-        exit(1);
+        ERROR_DIE("Error: Could not create socket.");
     }
 
     memset(&server, 0, sizeof server);
@@ -79,23 +82,20 @@ int main(int argc, char *argv[]) {
 
     err = bind(hsock, (struct sockaddr *)&server, sizeof server);
     if (err < 0) {
-        puts("Error: Bind failed.");
-        exit(1);
+        ERROR_DIE("Bind failed.");
     }
 
     err = listen(hsock, MAX_CON);
     if (err < 0) {
-        puts("Error: Listen failed.");
-        exit(1);
+        ERROR_DIE("Listen failed.");
     }
 
     sz_sockaddr = sizeof (struct sockaddr_in);
 
     while(run) {
         csock = accept(hsock, (struct sockaddr *)&client, (socklen_t *)&sz_sockaddr);
-        if (csock < 0) {
-            puts("Error: Accept failed.");
-            exit(1);
+        if (csock < 0 && run) {
+            ERROR_DIE("Accept failed.");
         }
 
         write(csock, response, strlen(response));
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 
 void T800(int i) {
     run = 0;
-    puts("Exiting..");
+    printf("\nExiting.. (%d)\n", i);
 }
 
 void help(void) {
