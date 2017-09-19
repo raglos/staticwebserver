@@ -65,6 +65,8 @@ int main(int argc, char *argv[]) {
     if (!buf) {
         ERROR_DIE("R.I.P");
     }
+
+    memset(buf, '\0', st.st_size + 1);
     
     fread(buf, st.st_size, 1, f);
 
@@ -99,7 +101,7 @@ int main(int argc, char *argv[]) {
         }
 
         write(csock, response, strlen(response));
-        write(csock, buf, strlen(buf));
+        write(csock, buf, st.st_size + 1);
         write(csock, "\r\n", strlen("\r\n"));
 
         close(csock);
