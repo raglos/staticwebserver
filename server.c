@@ -23,20 +23,12 @@ const char *response =
 "Content-Type: text/html\r\n"
 "Connection: close\r\n\r\n";
 
-void help(void) {
-    puts("usage: [Port No.]");
-    exit(1);
-}
-
 char *buf;
 FILE *f;
+volatile int run = 1;
 
-void T800(int i) {
-    free(buf);
-    fclose(f);
-    printf("\nExiting... [%d]\n", i);
-    exit(1);
-}
+void T800(int);
+void help(void);
 
 int main(int argc, char *argv[]) {
     
@@ -98,21 +90,33 @@ int main(int argc, char *argv[]) {
     }
 
     sz_sockaddr = sizeof (struct sockaddr_in);
-A:
-    csock = accept(hsock, (struct sockaddr *)&client,
-                   (socklen_t *)&sz_sockaddr);
-    if (csock < 0) {
-        puts("Error: Accept failed.");
-        exit(1);
+
+    while(run) {
+        csock = accept(hsock, (struct sockaddr *)&client, (socklen_t *)&sz_sockaddr);
+        if (csock < 0) {
+            puts("Error: Accept failed.");
+            exit(1);
+        }
+
+        write(csock, response, strlen(response));
+        write(csock, buf, strlen(buf));
+        write(csock, "\r\n", strlen("\r\n"));
+
+        close(csock);
     }
-
-    write(csock, response, strlen(response));
-    write(csock, buf, strlen(buf));
-    write(csock, "\r\n", strlen("\r\n"));
-
-goto A;
 
     free(buf);
     fclose(f);
     return 0;
 }
+
+void T800(int i) {
+    run = 0;
+    puts("Exiting..");
+}
+
+void help(void) {
+    puts("usage: [Port No.]");
+    exit(1);
+}
+
