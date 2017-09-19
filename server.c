@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 
     hsock = socket(AF_INET, SOCK_STREAM, 0);
     if (hsock < 0) {
-        ERROR_DIE("Error: Could not create socket.");
+        ERROR_DIE("Could not create socket.");
     }
 
     memset(&server, 0, sizeof server);
